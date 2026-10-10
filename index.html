@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Wayfinding CNC</title>
+
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f5f5f5;
+}
+
+header{
+    background:#003366;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+header h1{
+    margin-bottom:10px;
+}
+
+.toolbar{
+    padding:15px;
+    background:white;
+    text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
+}
+
+.toolbar input{
+    width:320px;
+    max-width:90%;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+.toolbar button{
+    padding:10px 15px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
+    background:#003366;
+    color:white;
+    cursor:pointer;
+}
+
+.toolbar button:hover{
+    background:#004d99;
+}
+
+#map{
+    width:100%;
+    height:80vh;
+}
+
+#vistaPlano{
+    display:none;
+    padding:20px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
+    margin:20px 0;
+}
+
+.grid button{
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:#003366;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.grid button:hover{
+    background:#004d99;
+}
+
+.contenedor-plano{
+    position:relative;
+    max-width:1000px;
+    margin:auto;
+}
+
+#plano{
+    width:100%;
+    border:2px solid #ddd;
+    border-radius:15px;
+    display:block;
+}
+
+.punto{
+    position:absolute;
+    background:none;
+    border:none;
+    cursor:pointer;
+    width:30px;
+    height:30px;
+    transition:.3s;
+}
+
+.punto:hover{
+    transform:scale(1.3);
+}
+
+.biblioteca{
+    left:25%;
+    top:65%;
+}
+
+.laboratorio{
+    left:65%;
+    top:30%;
+}
+
+.direccion{
+    left:50%;
+    top:18%;
+}
+
+.secretaria{
+    left:42%;
+    top:25%;
+}
+
+.cancha{
+    left:80%;
+    top:78%;
+}
+
+#infoPlano{
+    margin-top:25px;
+}
+
+.ficha-lugar{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+}
+
+.ficha-lugar img{
+    width:100%;
+    max-width:700px;
+    display:block;
+    margin:auto;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+
+.ficha-lugar h2{
+    color:#003366;
+    margin-bottom:15px;
+}
+
+.ruta{
+    margin-top:15px;
+    padding:15px;
+    background:#eef5ff;
+    border-left:5px solid #003366;
+}
+
+svg{
+    overflow:visible;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>Sistema de Wayfinding Interactivo</h1>
+
+<p>
+Mapa de Localización Escolar con Tecnología QR
+</p>
+
+</header>
+
+<div class="toolbar">
+
+<input
+type="text"
+id="busqueda"
+placeholder="Biblioteca, Laboratorio, Dirección...">
+
+<button onclick="buscarPunto()">
+Buscar
+</button>
+
+<button onclick="mostrarMapa()">
+Vista Satelital
+</button>
+
+<button onclick="mostrarPlano()">
+Plano Interno
+</button>
+
+</div>
+
+<!-- MAPA -->
+
+<div id="vistaMapa">
+<div id="map"></div>
+</div>
+
+<!-- PLANO -->
+
+<div id="vistaPlano">
+
+<h2>Plano Interno CNC</h2>
+
+<p style="margin-top:10px;">
+Seleccione una ubicación utilizando los botones o los puntos marcados en el plano.
+</p>
+
+<div class="grid">
+
+<button onclick="mostrarInfoPlano('Biblioteca')">
+Biblioteca
+</button>
+
+<button onclick="mostrarInfoPlano('Laboratorio')">
+Laboratorio
+</button>
+
+<button onclick="mostrarInfoPlano('Dirección')">
+Dirección
+</button>
+
+<button onclick="mostrarInfoPlano('Secretaría')">
+Secretaría
+</button>
+
+<button onclick="mostrarInfoPlano('Cancha')">
+Cancha
+</button>
+
+</div>
+
+
+
+<div class="contenedor-plano">
+<img
+src="img/plano_cnc.jpeg"
+alt="Biblioteca" style="width: 100%; height: auto;">
+
+
+<button class="punto biblioteca"
+onclick="mostrarInfoPlano('Biblioteca')"
+title="Biblioteca">
+
+<svg width="30" height="30">
+<circle cx="15" cy="15" r="13" fill="#003366"/>
+<text x="15" y="19"
+fill="white"
+text-anchor="middle"
+font-size="12"
+font-weight="bold">1</text>
+</svg>
+
+</button>
+
+<button class="punto laboratorio"
+onclick="mostrarInfoPlano('Laboratorio')"
+title="Laboratorio">
+
+<svg width="30" height="30">
+<circle cx="15" cy="15" r="13" fill="#0d6efd"/>
+<text x="15" y="19"
+fill="white"
+text-anchor="middle"
+font-size="12"
+font-weight="bold">2</text>
+</svg>
+
+</button>
+
+<button class="punto direccion"
+onclick="mostrarInfoPlano('Dirección')"
+title="Dirección">
+
+<svg width="30" height="30">
+<circle cx="15" cy="15" r="13" fill="#198754"/>
+<text x="15" y="19"
+fill="white"
+text-anchor="middle"
+font-size="12"
+font-weight="bold">3</text>
+</svg>
+
+</button>
+
+<button class="punto secretaria"
+onclick="mostrarInfoPlano('Secretaría')"
+title="Secretaría">
+
+<svg width="30" height="30">
+<circle cx="15" cy="15" r="13" fill="#fd7e14"/>
+<text x="15" y="19"
+fill="white"
+text-anchor="middle"
+font-size="12"
+font-weight="bold">4</text>
+</svg>
+
+</button>
+
+<button class="punto cancha"
+onclick="mostrarInfoPlano('Cancha')"
+title="Cancha">
+
+<svg width="30" height="30">
+<circle cx="15" cy="15" r="13" fill="#dc3545"/>
+<text x="15" y="19"
+fill="white"
+text-anchor="middle"
+font-size="12"
+font-weight="bold">5</text>
+</svg>
+
+</button>
+
+</div>
+
+<div id="infoPlano">
+
+<div class="ficha-lugar">
+
+<h2>Bienvenido</h2>
+
+<p>
+Seleccione una ubicación para visualizar fotografías,
+descripciones, usos y rutas sugeridas.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+function mostrarMapa(){
+
+    document.getElementById("vistaMapa").style.display = "block";
+    document.getElementById("vistaPlano").style.display = "none";
+
+}
+
+function mostrarPlano(){
+
+    document.getElementById("vistaMapa").style.display = "none";
+    document.getElementById("vistaPlano").style.display = "block";
+
+}
+
+function mostrarInfoPlano(nombre){
+
+let contenido = "";
+
+switch(nombre){
+
+case "Biblioteca":
+
+contenido = `
+<div class="ficha-lugar">
+
+<img
+src="img/cnc_general.jpeg"
+alt="Biblioteca">
+
+<h2>Biblioteca</h2>
+
+<p>
+<strong>Ubicación:</strong>
+Bloque Académico
+</p>
+
+<p>
+Espacio destinado a la lectura,
+investigación y consulta de materiales educativos.
+</p>
+
+<div class="ruta">
+
+<strong>Ruta sugerida:</strong><br>
+
+Entrada Principal →
+Patio Central →
+Bloque Académico →
+Biblioteca
+
+</div>
+
+</div>
+`;
+break;
+
+case "Laboratorio":
+
+contenido = `
+<div class="ficha-lugar">
+
+<img
+src="img/laboratorio.jpeg"
+alt="Laboratorio">
+
+<h2>Laboratorio</h2>
+
+<p>
+<strong>Ubicación:</strong>
+Segundo Piso
+</p>
+
+<p>
+Espacio equipado para actividades tecnológicas,
+informática y programación.
+</p>
+
+<div class="ruta">
+
+<strong>Ruta sugerida:</strong><br>
+
+Entrada Principal →
+Escalera Principal →
+Segundo Piso →
+Laboratorio
+
+</div>
+
+</div>
+`;
+break;
+
+case "Dirección":
+
+contenido = `
+<div class="ficha-lugar">
+
+<img
+src="img/direccion.jpeg"
+alt="Dirección">
+
+<h2>Dirección</h2>
+
+<p>
+<strong>Ubicación:</strong>
+Administración
+</p>
+
+<p>
+Área responsable de la gestión institucional.
+</p>
+
+</div>
+`;
+break;
+
+case "Secretaría":
+
+contenido = `
+<div class="ficha-lugar">
+
+<img
+src="img/secretaria.jpeg"
+alt="Secretaría">
+
+<h2>Secretaría</h2>
+
+<p>
+<strong>Ubicación:</strong>
+Administración
+</p>
+
+<p>
+Área de atención administrativa y académica.
+</p>
+
+</div>
+`;
+break;
+
+case "Cancha":
+
+contenido = `
+<div class="ficha-lugar">
+
+<img
+src="img/cancha.jpeg"
+alt="Cancha">
+
+<h2>Cancha</h2>
+
+<p>
+<strong>Ubicación:</strong>
+Sector Deportivo
+</p>
+
+<p>
+Espacio destinado a actividades deportivas
+y recreativas.
+</p>
+
+</div>
+`;
+break;
+
+}
+
+document.getElementById("infoPlano").innerHTML = contenido;
+
+}
+
+function buscarPunto(){
+
+const texto = document
+.getElementById("busqueda")
+.value
+.trim()
+.toLowerCase();
+
+const lugares = {
+
+"biblioteca":"Biblioteca",
+"laboratorio":"Laboratorio",
+"dirección":"Dirección",
+"direccion":"Dirección",
+"secretaría":"Secretaría",
+"secretaria":"Secretaría",
+"cancha":"Cancha"
+
+};
+
+if(lugares[texto]){
+
+    mostrarPlano();
+    mostrarInfoPlano(lugares[texto]);
+
+}else{
+
+    alert("Ubicación no encontrada");
+
+}
+
+}
+
+/* MAPA ESRI */
+
+const map = L.map('map').setView(
+[-25.3021753, -57.6175873],
+20
+);
+
+L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+{
+    attribution:'Tiles © Esri'
+}
+).addTo(map);
+
+L.marker(
+[-25.3021753, -57.6175873]
+)
+.addTo(map)
+.bindPopup(
+'<b>Colegio Nacional de la Capital</b>'
+);
+
+</script>
+
+</body>
+</html>
